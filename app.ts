@@ -3,7 +3,11 @@ import { db } from "./dbconfig/db";
 import swaggerJsdoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
 import { accRoute } from "./routes/accountrouter";
-const port = 8008;
+import dotenv from "dotenv";
+
+dotenv.config();
+
+const port = process.env.PORT;
 const app = express();
 
 const swaggerOptions = {

@@ -49,11 +49,12 @@ exports.accRoute = accRoute;
  *            schema:
  *              type: object
  *              properties:
+ *                status:
+ *                  type: number
  *                message:
  *                  type: string
- *                  description: A success message
- *                example:
- *                  $ref: '#/components/schemas/Example'
+ *                data:
+ *                  type: null
  *      '500':
  *        description: Internal Server Error
  *        content:

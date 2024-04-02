@@ -17,7 +17,9 @@ const db_1 = require("./dbconfig/db");
 const swagger_jsdoc_1 = __importDefault(require("swagger-jsdoc"));
 const swagger_ui_express_1 = __importDefault(require("swagger-ui-express"));
 const accountrouter_1 = require("./routes/accountrouter");
-const port = 8008;
+const dotenv_1 = __importDefault(require("dotenv"));
+dotenv_1.default.config();
+const port = process.env.PORT;
 const app = (0, express_1.default)();
 const swaggerOptions = {
     definition: {

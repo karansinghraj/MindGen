@@ -5,25 +5,67 @@ import JWT from "jsonwebtoken";
 import nodemailer from "nodemailer";
 import { Otp } from "../schema/otp";
 //const nodemailer =  require("nodemailer")
+import dotenv from "dotenv";
+import { error } from "console";
 
-const salt = 8;
-const SecretKey = "Secret_key";
+dotenv.config();
+
+if (!process.env.JWT_SECRET_KEY) {
+  throw new Error("JWT_SECRET_KEY is not provided");
+}
+
+const SecretKey = process.env.JWT_SECRET_KEY;
 
 async function encryptPassword(passsword: any) {
-  const hashPassword = await bcrypt.hash(passsword, salt);
+  const saltRound = 10; // No of time it gone Hash
+  const hashPassword = await bcrypt.hash(passsword, saltRound);
   return hashPassword;
 }
 
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 587,
-  secure: false,
-  tls: true,
-  auth: {
-    user: "rajpurohitkaran2209@gmail.com",
-    pass: "seck sxvf dnzl xuzp",
-  },
-} as nodemailer.TransportOptions);
+async function sendMail(subject: string, message: string, email: string) {
+  try {
+    const transporter = nodemailer.createTransport({
+      host: "smtp.gmail.com",
+      port: 587,
+      secure: false,
+      tls: {
+        ciphers: "SSLv3",
+        rejectUnauthorized: false,
+        // ciphers: 'TLS_AES_256_GCM_SHA384', // Use modern TLS cipher suite
+        // rejectUnauthorized: true // Validate server certificate
+      },
+      auth: {
+        user: process.env.EMAIL_FROM,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    const mailOptions = {
+      from: process.env.EMAIL_FROM,
+      to: email,
+      subject: subject,
+      text: message,
+      html: message,
+    };
+
+    const mailInfo = await transporter.sendMail(mailOptions);
+    console.log("Mail sent successfully", mailInfo.response);
+    return {
+      status: 200,
+      message: "Success",
+      data: mailInfo.response,
+    };
+  } catch (error: any) {
+    console.error("Failed to send email:", error.message);
+    throw error;
+  }
+}
+
+function generateJwtToken(user: any) {
+  return JWT.sign({ sub: user._id, email: user.email }, SecretKey, {
+    expiresIn: "1d",
+  });
+}
 
 // Function to generate a random verification token
 function generateOtp() {
@@ -82,7 +124,7 @@ async function userSignUp(model: any) {
 
     const hashPassword = await encryptPassword(password);
 
-    const user = await User.create({
+    const newUser = await User.create({
       firstName: firstName,
       lastName: lastName,
       userName: userName,
@@ -92,7 +134,7 @@ async function userSignUp(model: any) {
       phone: phone,
       termsAndCondition: termsAndCondition,
     });
-    if (!user) {
+    if (!newUser) {
       return {
         status: 400,
         message: "User doesnt created",
@@ -100,21 +142,24 @@ async function userSignUp(model: any) {
       };
     }
     const verificationToken = generateOtp();
-    const verificationLink = `http://yourapp.com/verify/${verificationToken}`;
-    const mailOptions = {
-      from: "rajpurohitkaran2209@gmail.com",
-      to: user.email,
-      subject: "Email Verification",
-      text: `Click the following link to verify your email: ${verificationLink}`,
-      message: "Verification code for Signup is " + verificationToken,
-    };
+    const verificationLink = `http://localhost:8008/${verificationToken}`;
+    const subject = "Confirm your Email";
+    const message = `Hi ${newUser.firstName},\n\nYour email was used to create an account in MindGen.com.\n\nPlease click on this link to confirm your account: ${verificationLink}\n\nThanks`;
+    // const mailOptions = {
+    //   from: "rajpurohitkaran2209@gmail.com",
+    //   to: newUser.email,
+    //   subject: "Email Verification",
+    //   text: `Click the following link to verify your email: ${verificationLink}`,
+    //   message: `Hi ${newUser.firstName},\n\nYour email was used to create an account in MindGen.com.\n\nPlease click on this link to confirm your account: ${verificationLink}\n\nThanks`,
+    // };
 
     const userOtp = await Otp.create({
-      userId: user._id,
+      userId: newUser._id,
       otp: verificationToken,
     });
 
-    await transporter.sendMail(mailOptions);
+    //await transporter.sendMail(mailOptions);
+    await sendMail(subject, message, newUser.email);
 
     return {
       status: 200,
@@ -150,11 +195,11 @@ async function signUpverification(model: any) {
       };
     }
     const verificationOtp = await Otp.findOne({ userId: user._id });
-    console.log(
-      typeof verificationOtp?.otp,
-      typeof parseInt(otp),
-      verificationOtp?.otp === parseInt(otp)
-    );
+    // console.log(
+    //   typeof verificationOtp?.otp,
+    //   typeof parseInt(otp),
+    //   verificationOtp?.otp === parseInt(otp)
+    // );
     if (verificationOtp?.otp !== parseInt(otp)) {
       return {
         status: 401,
@@ -169,7 +214,7 @@ async function signUpverification(model: any) {
     const token = await JWT.sign(
       { sub: user._id, email: user.email },
       SecretKey,
-      { expiresIn: "" }
+      { expiresIn: "1hr" }
     );
 
     return {
@@ -178,6 +223,7 @@ async function signUpverification(model: any) {
       data: token,
     };
   } catch (error) {
+    console.log(error);
     return {
       status: 500,
       message: "Internal server error",
@@ -223,11 +269,7 @@ async function userLogin(model: any) {
       };
     }
 
-    const token = await JWT.sign(
-      { sub: user._id, email: user.email },
-      SecretKey,
-      { expiresIn: "" }
-    );
+    const token = generateJwtToken(user);
 
     return {
       status: 200,

@@ -20,24 +20,63 @@ const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const nodemailer_1 = __importDefault(require("nodemailer"));
 const otp_1 = require("../schema/otp");
 //const nodemailer =  require("nodemailer")
-const salt = 8;
-const SecretKey = "Secret_key";
+const dotenv_1 = __importDefault(require("dotenv"));
+dotenv_1.default.config();
+if (!process.env.JWT_SECRET_KEY) {
+    throw new Error("JWT_SECRET_KEY is not provided");
+}
+const SecretKey = process.env.JWT_SECRET_KEY;
 function encryptPassword(passsword) {
     return __awaiter(this, void 0, void 0, function* () {
-        const hashPassword = yield bcrypt_1.default.hash(passsword, salt);
+        const saltRound = 10; // No of time it gone Hash
+        const hashPassword = yield bcrypt_1.default.hash(passsword, saltRound);
         return hashPassword;
     });
 }
-const transporter = nodemailer_1.default.createTransport({
-    host: "smtp.gmail.com",
-    port: 587,
-    secure: false,
-    tls: true,
-    auth: {
-        user: "rajpurohitkaran2209@gmail.com",
-        pass: "seck sxvf dnzl xuzp",
-    },
-});
+function sendMail(subject, message, email) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const transporter = nodemailer_1.default.createTransport({
+                host: "smtp.gmail.com",
+                port: 587,
+                secure: false,
+                tls: {
+                    ciphers: "SSLv3",
+                    rejectUnauthorized: false,
+                    // ciphers: 'TLS_AES_256_GCM_SHA384', // Use modern TLS cipher suite
+                    // rejectUnauthorized: true // Validate server certificate
+                },
+                auth: {
+                    user: process.env.EMAIL_FROM,
+                    pass: process.env.EMAIL_PASS,
+                },
+            });
+            const mailOptions = {
+                from: process.env.EMAIL_FROM,
+                to: email,
+                subject: subject,
+                text: message,
+                html: message,
+            };
+            const mailInfo = yield transporter.sendMail(mailOptions);
+            console.log("Mail sent successfully", mailInfo.response);
+            return {
+                status: 200,
+                message: "Success",
+                data: mailInfo.response,
+            };
+        }
+        catch (error) {
+            console.error("Failed to send email:", error.message);
+            throw error;
+        }
+    });
+}
+function generateJwtToken(user) {
+    return jsonwebtoken_1.default.sign({ sub: user._id, email: user.email }, SecretKey, {
+        expiresIn: "1d",
+    });
+}
 // Function to generate a random verification token
 function generateOtp() {
     // Implement your logic for generating a token (e.g., using a library)
@@ -82,7 +121,7 @@ function userSignUp(model) {
                 }
             }
             const hashPassword = yield encryptPassword(password);
-            const user = yield user_1.User.create({
+            const newUser = yield user_1.User.create({
                 firstName: firstName,
                 lastName: lastName,
                 userName: userName,
@@ -92,7 +131,7 @@ function userSignUp(model) {
                 phone: phone,
                 termsAndCondition: termsAndCondition,
             });
-            if (!user) {
+            if (!newUser) {
                 return {
                     status: 400,
                     message: "User doesnt created",
@@ -100,19 +139,22 @@ function userSignUp(model) {
                 };
             }
             const verificationToken = generateOtp();
-            const verificationLink = `http://yourapp.com/verify/${verificationToken}`;
-            const mailOptions = {
-                from: "rajpurohitkaran2209@gmail.com",
-                to: user.email,
-                subject: "Email Verification",
-                text: `Click the following link to verify your email: ${verificationLink}`,
-                message: "Verification code for Signup is " + verificationToken,
-            };
+            const verificationLink = `http://localhost:8008/${verificationToken}`;
+            const subject = "Confirm your Email";
+            const message = `Hi ${newUser.firstName},\n\nYour email was used to create an account in MindGen.com.\n\nPlease click on this link to confirm your account: ${verificationLink}\n\nThanks`;
+            // const mailOptions = {
+            //   from: "rajpurohitkaran2209@gmail.com",
+            //   to: newUser.email,
+            //   subject: "Email Verification",
+            //   text: `Click the following link to verify your email: ${verificationLink}`,
+            //   message: `Hi ${newUser.firstName},\n\nYour email was used to create an account in MindGen.com.\n\nPlease click on this link to confirm your account: ${verificationLink}\n\nThanks`,
+            // };
             const userOtp = yield otp_1.Otp.create({
-                userId: user._id,
+                userId: newUser._id,
                 otp: verificationToken,
             });
-            yield transporter.sendMail(mailOptions);
+            //await transporter.sendMail(mailOptions);
+            yield sendMail(subject, message, newUser.email);
             return {
                 status: 200,
                 message: "Check your email for verification",
@@ -150,7 +192,11 @@ function signUpverification(model) {
                 };
             }
             const verificationOtp = yield otp_1.Otp.findOne({ userId: user._id });
-            console.log(typeof (verificationOtp === null || verificationOtp === void 0 ? void 0 : verificationOtp.otp), typeof parseInt(otp), (verificationOtp === null || verificationOtp === void 0 ? void 0 : verificationOtp.otp) === parseInt(otp));
+            // console.log(
+            //   typeof verificationOtp?.otp,
+            //   typeof parseInt(otp),
+            //   verificationOtp?.otp === parseInt(otp)
+            // );
             if ((verificationOtp === null || verificationOtp === void 0 ? void 0 : verificationOtp.otp) !== parseInt(otp)) {
                 return {
                     status: 401,
@@ -160,13 +206,15 @@ function signUpverification(model) {
             }
             user.isActive = true;
             yield user.save;
+            const token = yield jsonwebtoken_1.default.sign({ sub: user._id, email: user.email }, SecretKey, { expiresIn: "1hr" });
             return {
                 status: 200,
                 message: "User Signed Up Successfully",
-                data: null,
+                data: token,
             };
         }
         catch (error) {
+            console.log(error);
             return {
                 status: 500,
                 message: "Internal server error",
@@ -211,7 +259,7 @@ function userLogin(model) {
                     data: null,
                 };
             }
-            const token = yield jsonwebtoken_1.default.sign({ sub: user._id, email: user.email }, SecretKey, { expiresIn: "" });
+            const token = generateJwtToken(user);
             return {
                 status: 200,
                 message: "Login Successfully",
