@@ -1,5 +1,7 @@
 import { Router } from "express";
 import {
+  resetPassword,
+  sendResetLink,
   signUpverification,
   userLogin,
   userSignUp,
@@ -191,5 +193,125 @@ accRoute.get("/account/signupverification", signUpverification);
  */
 
 accRoute.get("/account/login", userLogin);
+
+/**
+ * @swagger
+ * paths:
+ *   /api/account/resetlink:
+ *     get:
+ *       summary: Login User
+ *       parameters:
+ *         - in: query
+ *           name: email
+ *           schema:
+ *             type: string
+ *           required: true
+ *           description: The email address of the user
+ *       responses:
+ *         '200':
+ *           description: Successful login
+ *           content:
+ *             application/json:
+ *               schema:
+ *                 type: object
+ *                 properties:
+ *                   status:
+ *                     type: number
+ *                     description: status code
+ *                   message:
+ *                     type: string
+ *                     description: A success message
+ *                   token:
+ *                     type: string
+ *                     description: An authentication token
+ *         '401':
+ *           description: Unauthorized
+ *           content:
+ *             application/json:
+ *               schema:
+ *                 type: object
+ *                 properties:
+ *                   message:
+ *                     type: string
+ *                     description: An error message
+ *         '500':
+ *           description: Internal Server Error
+ *           content:
+ *             application/json:
+ *               schema:
+ *                 type: object
+ *                 properties:
+ *                   message:
+ *                     type: string
+ *                     description: An error message
+ */
+
+accRoute.get("/account/resetlink", sendResetLink);
+
+/**
+ * @swagger
+ * paths:
+ *   /api/account/resetpassword:
+ *     put:
+ *       summary: Login User
+ *       parameters:
+ *         - in: query
+ *           name: token
+ *           schema:
+ *             type: string
+ *           required: true
+ *           description: The email address of the user
+ *         - in: query
+ *           name: newPassword
+ *           schema:
+ *             type: string
+ *           required: true
+ *           description: The password of the user
+ *         - in: query
+ *           name: confirmNewPassword
+ *           schema:
+ *             type: string
+ *           required: true
+ *           description: The password of the user
+ *       responses:
+ *         '200':
+ *           description: Successful login
+ *           content:
+ *             application/json:
+ *               schema:
+ *                 type: object
+ *                 properties:
+ *                   status:
+ *                     type: number
+ *                     description: status code
+ *                   message:
+ *                     type: string
+ *                     description: A success message
+ *                   token:
+ *                     type: string
+ *                     description: An authentication token
+ *         '401':
+ *           description: Unauthorized
+ *           content:
+ *             application/json:
+ *               schema:
+ *                 type: object
+ *                 properties:
+ *                   message:
+ *                     type: string
+ *                     description: An error message
+ *         '500':
+ *           description: Internal Server Error
+ *           content:
+ *             application/json:
+ *               schema:
+ *                 type: object
+ *                 properties:
+ *                   message:
+ *                     type: string
+ *                     description: An error message
+ */
+
+accRoute.put("/account/resetpassword", resetPassword);
 
 export { accRoute };

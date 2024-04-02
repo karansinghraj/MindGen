@@ -1,12 +1,13 @@
 import { User } from "../schema/user";
 import bcrypt from "bcrypt";
-import JWT from "jsonwebtoken";
+import * as JWT from "jsonwebtoken";
 //const JWT = require("jsonwebtoken");
 import nodemailer from "nodemailer";
 import { Otp } from "../schema/otp";
 //const nodemailer =  require("nodemailer")
 import dotenv from "dotenv";
 import { error } from "console";
+import { AnyARecord } from "dns";
 
 dotenv.config();
 
@@ -20,6 +21,17 @@ async function encryptPassword(passsword: any) {
   const saltRound = 10; // No of time it gone Hash
   const hashPassword = await bcrypt.hash(passsword, saltRound);
   return hashPassword;
+}
+
+function decodeJwtToken(token: string): any {
+  try {
+    const decoded = JWT.verify(token, SecretKey);
+    return decoded;
+  } catch (error: any) {
+    // Handle token verification errors, such as token expiration or invalid token
+    console.error("Error decoding JWT token:", error.message);
+    return null; // You can choose to return null or throw an error as per your needs
+  }
 }
 
 async function sendMail(subject: string, message: string, email: string) {
@@ -59,6 +71,12 @@ async function sendMail(subject: string, message: string, email: string) {
     console.error("Failed to send email:", error.message);
     throw error;
   }
+}
+
+function generateOtpToken(user: any, otp: string) {
+  return JWT.sign({ sub: user._id, email: user.email, otp: otp }, SecretKey, {
+    expiresIn: "5m",
+  });
 }
 
 function generateJwtToken(user: any) {
@@ -200,7 +218,7 @@ async function signUpverification(model: any) {
     //   typeof parseInt(otp),
     //   verificationOtp?.otp === parseInt(otp)
     // );
-    if (verificationOtp?.otp !== parseInt(otp)) {
+    if (verificationOtp?.otp !== otp) {
       return {
         status: 401,
         message: "Otp was Expired",
@@ -209,7 +227,7 @@ async function signUpverification(model: any) {
     }
 
     user.isActive = true;
-    await user.save;
+    await user.save();
 
     const token = await JWT.sign(
       { sub: user._id, email: user.email },
@@ -286,4 +304,123 @@ async function userLogin(model: any) {
   }
 }
 
-export { userSignUp, userLogin, signUpverification };
+async function sendResetLink(model: any) {
+  const { email } = model;
+  if (!email) {
+    return {
+      status: 400,
+      message: "Bad request",
+      data: null,
+    };
+  }
+  try {
+    const user = await User.findOne({ email: email, isActive: true });
+    if (!user) {
+      return {
+        status: 404,
+        message: "User not found",
+        data: null,
+      };
+    }
+
+    const otp = generateOtp();
+
+    const subject = "Reset password";
+    const token = generateOtpToken(user, otp);
+    const resetPasswordLink = `http://localhost:8008/${token}`;
+    const message = `Hi ${user.firstName},\n We received a request to reset the password for your account on example.com.\nTo proceed with the password reset, please click on the link below:\n${resetPasswordLink}\nIf you did not request this password reset, you can safely ignore this email.`;
+
+    const userOtp = await Otp.create({
+      userId: user._id,
+      otp: otp,
+    });
+
+    await sendMail(subject, message, user.email);
+
+    return {
+      status: 200,
+      message: "Link sent successfully",
+      data: null,
+    };
+  } catch (error) {
+    return {
+      status: 500,
+      message: "Internal server error",
+      data: null,
+    };
+  }
+}
+
+async function resetPassword(model: any) {
+  const { token, newPassword, confirmNewPassword } = model;
+  if (!token || !newPassword || !confirmNewPassword) {
+    return {
+      status: 400,
+      message: "Bad Request",
+      data: null,
+    };
+  }
+
+  if (newPassword !== confirmNewPassword) {
+    return {
+      status: 400,
+      message: "Both password don't match",
+      data: null,
+    };
+  }
+  try {
+    const decodetoken = decodeJwtToken(token);
+    //const decodetoken = JWT.verify(token,SecretKey)
+    const userOtp = decodetoken.otp;
+
+    const existingUser = await User.findOne({
+      _id: decodetoken.sub,
+      isActive: true,
+    });
+    if (!existingUser) {
+      return {
+        status: 404,
+        message: "User not found",
+        data: null,
+      };
+    }
+    const validateOtp = await Otp.findOne({ userId: decodetoken.sub });
+    if (!validateOtp) {
+      return {
+        status: 401,
+        message: "Otp was expired",
+        data: null,
+      };
+    }
+    console.log(validateOtp.otp, decodetoken.otp);
+    if (validateOtp.otp !== decodetoken.otp) {
+      return {
+        status: 401,
+        message: "Unauthorized",
+        data: null,
+      };
+    }
+    existingUser.password = await encryptPassword(newPassword);
+    existingUser.save();
+
+    return {
+      status: 200,
+      message: "Password changed successfully",
+      data: null,
+    };
+  } catch (error) {
+    return {
+      status: 500,
+      message: "Internal server error",
+      data: null,
+    };
+  }
+}
+
+export {
+  userSignUp,
+  userLogin,
+  signUpverification,
+  sendResetLink,
+  resetPassword,
+};

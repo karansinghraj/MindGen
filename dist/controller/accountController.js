@@ -32,7 +32,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.signUpverification = exports.userLogin = exports.userSignUp = void 0;
+exports.resetPassword = exports.sendResetLink = exports.signUpverification = exports.userLogin = exports.userSignUp = void 0;
 const accountServices = __importStar(require("../services/accountServices"));
 function userSignUp(req, res) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -58,3 +58,19 @@ function signUpverification(req, res) {
     });
 }
 exports.signUpverification = signUpverification;
+function sendResetLink(req, res) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const model = req.query;
+        const response = yield accountServices.sendResetLink(model);
+        res.status(response.status).json(response);
+    });
+}
+exports.sendResetLink = sendResetLink;
+function resetPassword(req, res) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const model = req.query;
+        const response = yield accountServices.resetPassword(model);
+        res.status(response.status).json(response);
+    });
+}
+exports.resetPassword = resetPassword;

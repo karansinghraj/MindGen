@@ -1,4 +1,27 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -12,10 +35,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.signUpverification = exports.userLogin = exports.userSignUp = void 0;
+exports.resetPassword = exports.sendResetLink = exports.signUpverification = exports.userLogin = exports.userSignUp = void 0;
 const user_1 = require("../schema/user");
 const bcrypt_1 = __importDefault(require("bcrypt"));
-const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const JWT = __importStar(require("jsonwebtoken"));
 //const JWT = require("jsonwebtoken");
 const nodemailer_1 = __importDefault(require("nodemailer"));
 const otp_1 = require("../schema/otp");
@@ -32,6 +55,17 @@ function encryptPassword(passsword) {
         const hashPassword = yield bcrypt_1.default.hash(passsword, saltRound);
         return hashPassword;
     });
+}
+function decodeJwtToken(token) {
+    try {
+        const decoded = JWT.verify(token, SecretKey);
+        return decoded;
+    }
+    catch (error) {
+        // Handle token verification errors, such as token expiration or invalid token
+        console.error("Error decoding JWT token:", error.message);
+        return null; // You can choose to return null or throw an error as per your needs
+    }
 }
 function sendMail(subject, message, email) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -72,8 +106,13 @@ function sendMail(subject, message, email) {
         }
     });
 }
+function generateOtpToken(user, otp) {
+    return JWT.sign({ sub: user._id, email: user.email, otp: otp }, SecretKey, {
+        expiresIn: "5m",
+    });
+}
 function generateJwtToken(user) {
-    return jsonwebtoken_1.default.sign({ sub: user._id, email: user.email }, SecretKey, {
+    return JWT.sign({ sub: user._id, email: user.email }, SecretKey, {
         expiresIn: "1d",
     });
 }
@@ -197,7 +236,7 @@ function signUpverification(model) {
             //   typeof parseInt(otp),
             //   verificationOtp?.otp === parseInt(otp)
             // );
-            if ((verificationOtp === null || verificationOtp === void 0 ? void 0 : verificationOtp.otp) !== parseInt(otp)) {
+            if ((verificationOtp === null || verificationOtp === void 0 ? void 0 : verificationOtp.otp) !== otp) {
                 return {
                     status: 401,
                     message: "Otp was Expired",
@@ -205,8 +244,8 @@ function signUpverification(model) {
                 };
             }
             user.isActive = true;
-            yield user.save;
-            const token = yield jsonwebtoken_1.default.sign({ sub: user._id, email: user.email }, SecretKey, { expiresIn: "1hr" });
+            yield user.save();
+            const token = yield JWT.sign({ sub: user._id, email: user.email }, SecretKey, { expiresIn: "1hr" });
             return {
                 status: 200,
                 message: "User Signed Up Successfully",
@@ -277,3 +316,114 @@ function userLogin(model) {
     });
 }
 exports.userLogin = userLogin;
+function sendResetLink(model) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const { email } = model;
+        if (!email) {
+            return {
+                status: 400,
+                message: "Bad request",
+                data: null,
+            };
+        }
+        try {
+            const user = yield user_1.User.findOne({ email: email, isActive: true });
+            if (!user) {
+                return {
+                    status: 404,
+                    message: "User not found",
+                    data: null,
+                };
+            }
+            const otp = generateOtp();
+            const subject = "Reset password";
+            const token = generateOtpToken(user, otp);
+            const resetPasswordLink = `http://localhost:8008/${token}`;
+            const message = `Hi ${user.firstName},\n We received a request to reset the password for your account on example.com.\nTo proceed with the password reset, please click on the link below:\n${resetPasswordLink}\nIf you did not request this password reset, you can safely ignore this email.`;
+            const userOtp = yield otp_1.Otp.create({
+                userId: user._id,
+                otp: otp,
+            });
+            yield sendMail(subject, message, user.email);
+            return {
+                status: 200,
+                message: "Link sent successfully",
+                data: null,
+            };
+        }
+        catch (error) {
+            return {
+                status: 500,
+                message: "Internal server error",
+                data: null,
+            };
+        }
+    });
+}
+exports.sendResetLink = sendResetLink;
+function resetPassword(model) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const { token, newPassword, confirmNewPassword } = model;
+        if (!token || !newPassword || !confirmNewPassword) {
+            return {
+                status: 400,
+                message: "Bad Request",
+                data: null,
+            };
+        }
+        if (newPassword !== confirmNewPassword) {
+            return {
+                status: 400,
+                message: "Both password don't match",
+                data: null,
+            };
+        }
+        try {
+            const decodetoken = decodeJwtToken(token);
+            //const decodetoken = JWT.verify(token,SecretKey)
+            const userOtp = decodetoken.otp;
+            const existingUser = yield user_1.User.findOne({
+                _id: decodetoken.sub,
+                isActive: true,
+            });
+            if (!existingUser) {
+                return {
+                    status: 404,
+                    message: "User not found",
+                    data: null,
+                };
+            }
+            const validateOtp = yield otp_1.Otp.findOne({ userId: decodetoken.sub });
+            if (!validateOtp) {
+                return {
+                    status: 401,
+                    message: "Otp was expired",
+                    data: null,
+                };
+            }
+            console.log(validateOtp.otp, decodetoken.otp);
+            if (validateOtp.otp !== decodetoken.otp) {
+                return {
+                    status: 401,
+                    message: "Unauthorized",
+                    data: null,
+                };
+            }
+            existingUser.password = yield encryptPassword(newPassword);
+            existingUser.save();
+            return {
+                status: 200,
+                message: "Password changed successfully",
+                data: null,
+            };
+        }
+        catch (error) {
+            return {
+                status: 500,
+                message: "Internal server error",
+                data: null,
+            };
+        }
+    });
+}
+exports.resetPassword = resetPassword;

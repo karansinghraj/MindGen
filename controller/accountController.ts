@@ -19,4 +19,22 @@ async function signUpverification(req: Request, res: Response) {
   res.status(response.status).json(response);
 }
 
-export { userSignUp, userLogin, signUpverification };
+async function sendResetLink(req: Request, res: Response) {
+  const model = req.query;
+  const response = await accountServices.sendResetLink(model);
+  res.status(response.status).json(response);
+}
+
+async function resetPassword(req: Request, res: Response) {
+  const model = req.query;
+  const response = await accountServices.resetPassword(model);
+  res.status(response.status).json(response);
+}
+
+export {
+  userSignUp,
+  userLogin,
+  signUpverification,
+  sendResetLink,
+  resetPassword,
+};
