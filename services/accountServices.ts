@@ -34,6 +34,51 @@ function decodeJwtToken(token: string): any {
   }
 }
 
+async function sendFromOutlook(
+  subject: string,
+  message: string,
+  email: string
+) {
+  try {
+    const transporter = nodemailer.createTransport({
+      host: "smtp.office365.com",
+      port: 587,
+      secure: false,
+      tls: {
+        ciphers: "SSLv3",
+        rejectUnauthorized: false,
+        // ciphers: 'TLS_AES_256_GCM_SHA384', // Use modern TLS cipher suite
+        // rejectUnauthorized: true // Validate server certificate
+      },
+      authMethod: "LOGIN",
+      auth: {
+        user: process.env.OUTLOOK_MAIL,
+        pass: process.env.OUTLOOK_PASS,
+      },
+    });
+
+    const mailOptions = {
+      from: process.env.OUTLOOK_MAIL,
+      to: email,
+      subject: subject,
+      text: message,
+      //message: message,
+      // html: message,
+    };
+
+    const mailInfo = await transporter.sendMail(mailOptions);
+    console.log("Mail sent successfully", mailInfo.response);
+    return {
+      status: 200,
+      message: "Success",
+      data: mailInfo.response,
+    };
+  } catch (error: any) {
+    console.error("Failed to send email:", error.message);
+    throw error;
+  }
+}
+
 async function sendMail(subject: string, message: string, email: string) {
   try {
     const transporter = nodemailer.createTransport({
@@ -175,9 +220,8 @@ async function userSignUp(model: any) {
       userId: newUser._id,
       otp: verificationToken,
     });
-
-    //await transporter.sendMail(mailOptions);
     await sendMail(subject, message, newUser.email);
+    //await sendFromOutlook(subject, message, newUser.email);
 
     return {
       status: 200,
@@ -304,7 +348,7 @@ async function userLogin(model: any) {
   }
 }
 
-async function sendResetLink(model: any) {
+async function resetPasswordLink(model: any) {
   const { email } = model;
   if (!email) {
     return {
@@ -421,6 +465,6 @@ export {
   userSignUp,
   userLogin,
   signUpverification,
-  sendResetLink,
+  resetPasswordLink,
   resetPassword,
 };

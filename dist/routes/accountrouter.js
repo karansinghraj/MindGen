@@ -187,7 +187,7 @@ accRoute.get("/account/login", accountController_1.userLogin);
 /**
  * @swagger
  * paths:
- *   /api/account/resetlink:
+ *   /api/account/resetPasswordLink:
  *     get:
  *       summary: Login User
  *       parameters:
@@ -235,7 +235,7 @@ accRoute.get("/account/login", accountController_1.userLogin);
  *                     type: string
  *                     description: An error message
  */
-accRoute.get("/account/resetlink", accountController_1.sendResetLink);
+accRoute.get("/account/resetPasswordLink", accountController_1.resetPasswordLink);
 /**
  * @swagger
  * paths:

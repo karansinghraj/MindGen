@@ -19,9 +19,9 @@ async function signUpverification(req: Request, res: Response) {
   res.status(response.status).json(response);
 }
 
-async function sendResetLink(req: Request, res: Response) {
+async function resetPasswordLink(req: Request, res: Response) {
   const model = req.query;
-  const response = await accountServices.sendResetLink(model);
+  const response = await accountServices.resetPasswordLink(model);
   res.status(response.status).json(response);
 }
 
@@ -35,6 +35,6 @@ export {
   userSignUp,
   userLogin,
   signUpverification,
-  sendResetLink,
+  resetPasswordLink,
   resetPassword,
 };

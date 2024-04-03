@@ -1,7 +1,7 @@
 import { Router } from "express";
 import {
   resetPassword,
-  sendResetLink,
+  resetPasswordLink,
   signUpverification,
   userLogin,
   userSignUp,
@@ -197,7 +197,7 @@ accRoute.get("/account/login", userLogin);
 /**
  * @swagger
  * paths:
- *   /api/account/resetlink:
+ *   /api/account/resetPasswordLink:
  *     get:
  *       summary: Login User
  *       parameters:
@@ -246,7 +246,7 @@ accRoute.get("/account/login", userLogin);
  *                     description: An error message
  */
 
-accRoute.get("/account/resetlink", sendResetLink);
+accRoute.get("/account/resetPasswordLink", resetPasswordLink);
 
 /**
  * @swagger

@@ -35,7 +35,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.resetPassword = exports.sendResetLink = exports.signUpverification = exports.userLogin = exports.userSignUp = void 0;
+exports.resetPassword = exports.resetPasswordLink = exports.signUpverification = exports.userLogin = exports.userSignUp = void 0;
 const user_1 = require("../schema/user");
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const JWT = __importStar(require("jsonwebtoken"));
@@ -66,6 +66,47 @@ function decodeJwtToken(token) {
         console.error("Error decoding JWT token:", error.message);
         return null; // You can choose to return null or throw an error as per your needs
     }
+}
+function sendFromOutlook(subject, message, email) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const transporter = nodemailer_1.default.createTransport({
+                host: "smtp.office365.com",
+                port: 587,
+                secure: false,
+                tls: {
+                    ciphers: "SSLv3",
+                    rejectUnauthorized: false,
+                    // ciphers: 'TLS_AES_256_GCM_SHA384', // Use modern TLS cipher suite
+                    // rejectUnauthorized: true // Validate server certificate
+                },
+                authMethod: "LOGIN",
+                auth: {
+                    user: process.env.OUTLOOK_MAIL,
+                    pass: process.env.OUTLOOK_PASS,
+                },
+            });
+            const mailOptions = {
+                from: process.env.OUTLOOK_MAIL,
+                to: email,
+                subject: subject,
+                text: message,
+                //message: message,
+                // html: message,
+            };
+            const mailInfo = yield transporter.sendMail(mailOptions);
+            console.log("Mail sent successfully", mailInfo.response);
+            return {
+                status: 200,
+                message: "Success",
+                data: mailInfo.response,
+            };
+        }
+        catch (error) {
+            console.error("Failed to send email:", error.message);
+            throw error;
+        }
+    });
 }
 function sendMail(subject, message, email) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -192,8 +233,8 @@ function userSignUp(model) {
                 userId: newUser._id,
                 otp: verificationToken,
             });
-            //await transporter.sendMail(mailOptions);
             yield sendMail(subject, message, newUser.email);
+            //await sendFromOutlook(subject, message, newUser.email);
             return {
                 status: 200,
                 message: "Check your email for verification",
@@ -316,7 +357,7 @@ function userLogin(model) {
     });
 }
 exports.userLogin = userLogin;
-function sendResetLink(model) {
+function resetPasswordLink(model) {
     return __awaiter(this, void 0, void 0, function* () {
         const { email } = model;
         if (!email) {
@@ -360,7 +401,7 @@ function sendResetLink(model) {
         }
     });
 }
-exports.sendResetLink = sendResetLink;
+exports.resetPasswordLink = resetPasswordLink;
 function resetPassword(model) {
     return __awaiter(this, void 0, void 0, function* () {
         const { token, newPassword, confirmNewPassword } = model;
