@@ -18,6 +18,7 @@ const swagger_jsdoc_1 = __importDefault(require("swagger-jsdoc"));
 const swagger_ui_express_1 = __importDefault(require("swagger-ui-express"));
 const accountrouter_1 = require("./routes/accountrouter");
 const dotenv_1 = __importDefault(require("dotenv"));
+const weatherRouter_1 = require("./routes/weatherRouter");
 dotenv_1.default.config();
 const port = process.env.PORT;
 const app = (0, express_1.default)();
@@ -46,6 +47,7 @@ const specs = (0, swagger_jsdoc_1.default)(swaggerOptions);
 app.use(express_1.default.json());
 app.use("/api-docs", swagger_ui_express_1.default.serve, swagger_ui_express_1.default.setup(specs));
 app.use("/api", accountrouter_1.accRoute);
+app.use("/api/feature", weatherRouter_1.weatherRoute);
 (() => __awaiter(void 0, void 0, void 0, function* () {
     try {
         yield (0, db_1.db)();

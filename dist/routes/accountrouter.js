@@ -73,7 +73,7 @@ accRoute.post("/account/signup", accountController_1.userSignUp);
  * paths:
  *   /api/account/signupverification:
  *     get:
- *       summary: Login User
+ *       summary: Api for verifying signup user
  *       parameters:
  *         - in: query
  *           name: email
@@ -189,7 +189,7 @@ accRoute.get("/account/login", accountController_1.userLogin);
  * paths:
  *   /api/account/resetPasswordLink:
  *     get:
- *       summary: Login User
+ *       summary: Api for sending password reset link
  *       parameters:
  *         - in: query
  *           name: email
@@ -241,7 +241,7 @@ accRoute.get("/account/resetPasswordLink", accountController_1.resetPasswordLink
  * paths:
  *   /api/account/resetpassword:
  *     put:
- *       summary: Login User
+ *       summary: Api for reset Password
  *       parameters:
  *         - in: query
  *           name: token

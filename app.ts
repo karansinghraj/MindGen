@@ -4,6 +4,7 @@ import swaggerJsdoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
 import { accRoute } from "./routes/accountrouter";
 import dotenv from "dotenv";
+import { weatherRoute } from "./routes/weatherRouter";
 
 dotenv.config();
 
@@ -39,6 +40,7 @@ app.use(express.json());
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));
 
 app.use("/api", accRoute);
+app.use("/api/feature", weatherRoute);
 
 (async () => {
   try {
