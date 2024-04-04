@@ -373,13 +373,36 @@ async function resetPasswordLink(model: any) {
     const token = generateOtpToken(user, otp);
     const resetPasswordLink = `http://localhost:8008/${token}`;
     const message = `Hi ${user.firstName},\n We received a request to reset the password for your account on example.com.\nTo proceed with the password reset, please click on the link below:\n${resetPasswordLink}\nIf you did not request this password reset, you can safely ignore this email.`;
+    const html = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Email Verification</title>
+    </head>
+    <body>
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h2>Email Verification</h2>
+            <p>Hello, ${user.firstName}</p>
+            <p>Thank you for signing up! To complete your registration, please click the link below to verify your email address:</p>
+            <p><a href="${resetPasswordLink}" style="padding: 10px 20px; background-color: #007bff; color: #fff; text-decoration: none;">Verify Email Address</a></p>
+            <p>If you didn't request this, you can safely ignore this email.</p>
+            <p>Best regards,<br>Mind Gen</p>
+            <div class="footer">
+               Email sent via MindGen.com  
+            </div>
+        </div>
+    </body>
+    </html>
+    `;
 
     const userOtp = await Otp.create({
       userId: user._id,
       otp: otp,
     });
 
-    await sendMail(subject, message, user.email);
+    await sendMail(subject, html, user.email);
 
     return {
       status: 200,
@@ -428,7 +451,10 @@ async function resetPassword(model: any) {
         data: null,
       };
     }
-    const validateOtp = await Otp.findOne({ userId: decodetoken.sub });
+    const validateOtp = await Otp.findOne({ userId: decodetoken.sub }).sort({
+      updatedDate: -1,
+    }); // -1 descending order
+
     if (!validateOtp) {
       return {
         status: 401,

@@ -14,7 +14,7 @@ const otpSchema = new mongoose.Schema<Iotp>({
 });
 
 // Create a TTL index on the updatedDate field
-otpSchema.index({ updatedDate: 1 }, { expireAfterSeconds: 120 }); // Expires after 60 seconds
+otpSchema.index({ updatedDate: 1 }, { expireAfterSeconds: 60 }); // Expires after 60 seconds
 
 // Middleware to update the 'updatedDate' field before saving the document
 // userOtpSchema.pre<Iotp>("save", function (next) {
