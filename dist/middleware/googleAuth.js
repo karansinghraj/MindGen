@@ -78,8 +78,8 @@ profile, done) => __awaiter(void 0, void 0, void 0, function* () {
             const newUser = new user_1.User({
                 firstName: profile.name,
                 lastName: profile.name,
-                email: profile.emails, //? profile.emails[0].value : "",
-                password: profile.id, // Store Google ID in the password field
+                email: profile.emails,
+                password: profile.id,
                 isActive: true,
                 termsAndCondition: true,
                 googleLogin: true,
