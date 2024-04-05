@@ -1,7 +1,11 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.accRoute = void 0;
 const express_1 = require("express");
+const passport_1 = __importDefault(require("passport"));
 const accountController_1 = require("../controller/accountController");
 const accRoute = (0, express_1.Router)();
 exports.accRoute = accRoute;
@@ -184,6 +188,73 @@ accRoute.get("/account/signupverification", accountController_1.signUpverificati
  *                     description: An error message
  */
 accRoute.get("/account/login", accountController_1.userLogin);
+/**
+ * @swagger
+ * paths:
+ *   /api/auth/login/google:
+ *     get:
+ *       summary: Google Login
+ *       description: Google Login
+ *       tags: [Login]
+ *       responses:
+ *         '200':
+ *           description: Successful login
+ *           content:
+ *             application/json:
+ *               schema:
+ *                 type: object
+ *                 properties:
+ *                   status:
+ *                     type: number
+ *                     description: status code
+ *                   message:
+ *                     type: string
+ *                     description: A success message
+ *                   token:
+ *                     type: string
+ *                     description: An authentication token
+ *         '401':
+ *           description: Unauthorized
+ *           content:
+ *             application/json:
+ *               schema:
+ *                 type: object
+ *                 properties:
+ *                   message:
+ *                     type: string
+ *                     description: An error message
+ *         '500':
+ *           description: Internal Server Error
+ *           content:
+ *             application/json:
+ *               schema:
+ *                 type: object
+ *                 properties:
+ *                   message:
+ *                     type: string
+ *                     description: An error message
+ */
+accRoute.get("/google", passport_1.default.authenticate("google", { scope: ["profile", "email"] }));
+accRoute.get("/google/redirect", (req, res, next) => {
+    passport_1.default.authenticate("google", (err, token) => {
+        if (err) {
+            // If an error occurs during authentication, return the error
+            return res
+                .status(500)
+                .json({ message: "Authentication failed", error: err });
+        }
+        if (!token) {
+            // If authentication fails (no token generated), return 401 status
+            return res.status(401).json({ message: "Unauthorized" });
+        }
+        // If authentication is successful, return the token
+        // createNewToken(token);
+        return (res
+            .status(200)
+            // .json({ token });
+            .redirect(`http://localhost:8008?token=${token}`)); //?token=${token}
+    })(req, res, next);
+});
 /**
  * @swagger
  * paths:

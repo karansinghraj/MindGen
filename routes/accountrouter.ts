@@ -1,4 +1,6 @@
 import { Router } from "express";
+import passport from "passport";
+import { Request, Response, NextFunction } from "express";
 import {
   resetPassword,
   resetPasswordLink,
@@ -193,6 +195,84 @@ accRoute.get("/account/signupverification", signUpverification);
  */
 
 accRoute.get("/account/login", userLogin);
+
+/**
+ * @swagger
+ * paths:
+ *   /api/auth/login/google:
+ *     get:
+ *       summary: Google Login
+ *       description: Google Login
+ *       tags: [Login]
+ *       responses:
+ *         '200':
+ *           description: Successful login
+ *           content:
+ *             application/json:
+ *               schema:
+ *                 type: object
+ *                 properties:
+ *                   status:
+ *                     type: number
+ *                     description: status code
+ *                   message:
+ *                     type: string
+ *                     description: A success message
+ *                   token:
+ *                     type: string
+ *                     description: An authentication token
+ *         '401':
+ *           description: Unauthorized
+ *           content:
+ *             application/json:
+ *               schema:
+ *                 type: object
+ *                 properties:
+ *                   message:
+ *                     type: string
+ *                     description: An error message
+ *         '500':
+ *           description: Internal Server Error
+ *           content:
+ *             application/json:
+ *               schema:
+ *                 type: object
+ *                 properties:
+ *                   message:
+ *                     type: string
+ *                     description: An error message
+ */
+
+accRoute.get(
+  "/google",
+  passport.authenticate("google", { scope: ["profile", "email"] })
+);
+
+accRoute.get(
+  "/google/redirect",
+  (req: Request, res: Response, next: NextFunction) => {
+    passport.authenticate("google", (err: any, token: string) => {
+      if (err) {
+        // If an error occurs during authentication, return the error
+        return res
+          .status(500)
+          .json({ message: "Authentication failed", error: err });
+      }
+      if (!token) {
+        // If authentication fails (no token generated), return 401 status
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      // If authentication is successful, return the token
+      // createNewToken(token);
+      return (
+        res
+          .status(200)
+          // .json({ token });
+          .redirect(`http://localhost:8008?token=${token}`)
+      ); //?token=${token}
+    })(req, res, next);
+  }
+);
 
 /**
  * @swagger

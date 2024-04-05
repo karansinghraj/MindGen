@@ -14,11 +14,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const db_1 = require("./dbconfig/db");
+const passport_1 = __importDefault(require("passport"));
 const swagger_jsdoc_1 = __importDefault(require("swagger-jsdoc"));
 const swagger_ui_express_1 = __importDefault(require("swagger-ui-express"));
 const accountrouter_1 = require("./routes/accountrouter");
 const dotenv_1 = __importDefault(require("dotenv"));
 const weatherRouter_1 = require("./routes/weatherRouter");
+const cors_1 = __importDefault(require("cors"));
+require("./middleware/googleAuth");
 dotenv_1.default.config();
 const port = process.env.PORT;
 const app = (0, express_1.default)();
@@ -44,9 +47,14 @@ const swaggerOptions = {
     apis: ["./routes/*.ts"],
 };
 const specs = (0, swagger_jsdoc_1.default)(swaggerOptions);
+app.use((0, cors_1.default)());
 app.use(express_1.default.json());
+app.use(passport_1.default.initialize());
 app.use("/api-docs", swagger_ui_express_1.default.serve, swagger_ui_express_1.default.setup(specs));
+// app.use(require("./routes/index"))
+// app.use('/auth', require('./routes/auth'))
 app.use("/api", accountrouter_1.accRoute);
+app.use("/api/auth/login", accountrouter_1.accRoute);
 app.use("/api/feature", weatherRouter_1.weatherRoute);
 (() => __awaiter(void 0, void 0, void 0, function* () {
     try {
