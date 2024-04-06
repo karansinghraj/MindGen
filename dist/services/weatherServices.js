@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.astronomyUpdate = exports.getWeather = void 0;
+exports.getCityTimeZone = exports.astronomyUpdate = exports.getWeather = void 0;
 const axios = require("axios");
 const { WEATHER_API_KEY } = process.env;
 function getWeather(model) {
@@ -87,17 +87,24 @@ function getCityTimeZone(model) {
         }
     });
 }
+exports.getCityTimeZone = getCityTimeZone;
 function astronomyUpdate(model) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const { city, date } = model; // Get city from query parameter
             const apiUrl = `https://api.weatherapi.com/v1/astronomy.json?q=${city}&dt=${date}&key=${WEATHER_API_KEY}`;
             const response = yield axios.get(apiUrl);
-            const weatherData = response.data;
+            const weatherData = {
+                region: response.data.location.region,
+                country: response.data.location.country,
+                localtime: response.data.location.localtime,
+                astronomy: response.data.astronomy.astro,
+            };
             return {
                 status: 200,
                 message: "Weather data fetch successfully",
                 data: weatherData,
+                //data: response.data,
             };
         }
         catch (error) {

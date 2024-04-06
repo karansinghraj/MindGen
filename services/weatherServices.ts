@@ -79,11 +79,17 @@ async function astronomyUpdate(model: any) {
     const apiUrl = `https://api.weatherapi.com/v1/astronomy.json?q=${city}&dt=${date}&key=${WEATHER_API_KEY}`;
 
     const response = await axios.get(apiUrl);
-    const weatherData = response.data;
+    const weatherData = {
+      region: response.data.location.region,
+      country: response.data.location.country,
+      localtime: response.data.location.localtime,
+      astronomy: response.data.astronomy.astro,
+    };
     return {
       status: 200,
       message: "Weather data fetch successfully",
       data: weatherData,
+      //data: response.data,
     };
   } catch (error) {
     console.error("Error fetching weather data:", error);
@@ -97,7 +103,7 @@ async function astronomyUpdate(model: any) {
 
 // module.exports = { getWeather };
 
-export { getWeather, astronomyUpdate };
+export { getWeather, astronomyUpdate, getCityTimeZone };
 
 // function getStubWeatherData(location) {
 //     var currentSeconds = new Date().getSeconds();

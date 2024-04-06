@@ -32,7 +32,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getWeather = void 0;
+exports.astronomyUpdate = exports.getCityTimeZone = exports.getWeather = void 0;
 const weatherServices = __importStar(require("../services/weatherServices"));
 function getWeather(req, res) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -42,3 +42,19 @@ function getWeather(req, res) {
     });
 }
 exports.getWeather = getWeather;
+function getCityTimeZone(req, res) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const model = req.query;
+        const response = yield weatherServices.getCityTimeZone(model);
+        res.status(response.status).json(response);
+    });
+}
+exports.getCityTimeZone = getCityTimeZone;
+function astronomyUpdate(req, res) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const model = req.query;
+        const response = yield weatherServices.astronomyUpdate(model);
+        res.status(response.status).json(response);
+    });
+}
+exports.astronomyUpdate = astronomyUpdate;
