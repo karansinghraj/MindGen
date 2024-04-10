@@ -1,6 +1,15 @@
 import mongoose from "mongoose";
+import dotenv from "dotenv";
+dotenv.config();
 
-const Url = "mongodb://127.0.0.1:27017/MindGen";
+const mongoclustername = process.env.mongoclustername;
+const mongopass = process.env.mongopass;
+
+const URI = `mongodb+srv://mindgen:${mongoclustername}@cluster0.${mongopass}.net/?retryWrites=true&w=majority&appName=Cluster0`;
+
+// const Url = "mongodb://127.0.0.1:27017/MindGen";
+
+const Url = `mongodb+srv://mindgen:XiXus9gCKbhpnMo6@cluster0.an7zbym.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
 const db = async () => {
   try {
