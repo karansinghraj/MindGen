@@ -127,7 +127,7 @@ function sendMail(subject, message, email) {
                 },
             });
             const mailOptions = {
-                from: process.env.EMAIL_FROM,
+                from: "MindGen Vision",
                 to: email,
                 subject: subject,
                 text: message,
