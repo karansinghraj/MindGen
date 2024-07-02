@@ -18,9 +18,8 @@ const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
 const mongoclustername = process.env.mongoclustername;
 const mongopass = process.env.mongopass;
-const URI = `mongodb+srv://mindgen:${mongoclustername}@cluster0.${mongopass}.net/?retryWrites=true&w=majority&appName=Cluster0`;
+const Url = `mongodb+srv://mindgen:${mongoclustername}@cluster0.${mongopass}.net/?retryWrites=true&w=majority&appName=Cluster0`;
 // const Url = "mongodb://127.0.0.1:27017/MindGen";
-const Url = `mongodb+srv://mindgen:XiXus9gCKbhpnMo6@cluster0.an7zbym.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 const db = () => __awaiter(void 0, void 0, void 0, function* () {
     try {
         yield mongoose_1.default.connect(Url);
